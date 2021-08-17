@@ -1,6 +1,11 @@
 #include <Uefi.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/PrintLib.h>
+#include <Protocol/LoadedImage.h>
+#include <Protocol/SimpleFileSystem.h>
+#include <Protocol/DiskIo2.h>
+#include <Protocol/BlockIo.h>
 
 struct MemoryMap
 {
@@ -66,6 +71,32 @@ const CHAR16 *GetMemoryTypeUnicode(EFI_MEMORY_TYPE type)
     default:
         return L"InvalidMemoryType";
     }
+}
+
+EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL **root)
+{
+    EFI_LOADED_IMAGE_PROTOCOL *loaded_image;
+    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *fs;
+
+    gBS->OpenProtocol(
+        image_handle,
+        &gEfiLoadedImageProtocolGuid,
+        (VOID **)&loaded_image,
+        image_handle,
+        NULL,
+        EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+
+    gBS->OpenProtocol(
+        loaded_image->DeviceHandle,
+        &gEfiSimpleFileSystemProtocolGuid,
+        (VOID **)&fs,
+        image_handle,
+        NULL,
+        EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+
+    fs->OpenVolume(fs, root);
+
+    return EFI_SUCCESS;
 }
 
 EFI_STATUS EFIAPI UefiMain(
